@@ -322,7 +322,7 @@ with tab1:
                     with st.expander("🌐 Çeviri Detayını Gör"):
                         st.write(f"**Orijinal Metin:** {user_input}")
                         st.write(f"**Analiz Edilen (İngilizce):** {translated_text}")
-                        
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 📊 Sahtelik / Gerçeklik Oranı")
 
@@ -419,19 +419,39 @@ with tab2:
                     df_yeni = pd.DataFrame(lines, columns=["yorum"])
                     metin_sutun = "yorum"
 
-                with st.spinner("Analiz ediliyor..."):
-                    df_yeni['is_valid'] = df_yeni[metin_sutun].apply(lambda x: is_valid_review(x)[0])
-                    df_yeni['clean_text'] = df_yeni[metin_sutun].astype(str).apply(clean_text)
-                    X_yeni = tfidf.transform(df_yeni['clean_text'])
-                    df_yeni['tahmin'] = model.predict(X_yeni)
-                    df_yeni['tahmin_label'] = df_yeni['tahmin'].map({0: '🚨 Sahte', 1: '✅ Gerçek'})
-                    df_yeni.loc[df_yeni['is_valid'] == False, 'tahmin_label'] = '⚠️ Geçersiz Girdi'
+                # 100 Satır Kontrolü
+                if len(df_yeni) > 100:
+                    st.error(f"⚠️ Dosya çok büyük ({len(df_yeni)} satır). API limitleri nedeniyle maksimum 100 satır yüklenebilir.")
+                else:
+                    with st.spinner("🌍 Çevriliyor ve Analiz ediliyor..."):
+                        # Toplu İşleme Fonksiyonu
+                        def toplu_islem(row_text):
+                            try:
+                                # Dil algıla ve çevir
+                                t_text = GoogleTranslator(source='auto', target='en').translate(str(row_text))
+                                # Geçerlilik kontrolü (çevrilmiş metin üzerinden)
+                                valid, _ = is_valid_review(t_text)
+                                if not valid:
+                                    return "⚠️ Geçersiz", t_text
+                                # Temizle ve Tahmin Et
+                                cleaned = clean_text(t_text)
+                                vec = tfidf.transform([cleaned])
+                                pred = model.predict(vec)[0]
+                                label = '✅ Gerçek' if pred == 1 else '🚨 Sahte'
+                                return label, t_text
+                            except:
+                                return "❌ Hata", str(row_text)
 
-                st.session_state.dosyalar[dosya_adi] = {
-                    'df': df_yeni,
-                    'metin_sutun': metin_sutun
-                }
-                st.session_state.aktif_dosya = dosya_adi
+                        # Fonksiyonu tüm satırlara uygula
+                        sonuclar = df_yeni[metin_sutun].apply(toplu_islem)
+                        df_yeni['tahmin_label'] = [s[0] for s in sonuclar]
+                        df_yeni['english_version'] = [s[1] for s in sonuclar]
+
+                    st.session_state.dosyalar[dosya_adi] = {
+                        'df': df_yeni,
+                        'metin_sutun': metin_sutun
+                    }
+                    st.session_state.aktif_dosya = dosya_adi
 
         # Dosya listesi
         if st.session_state.dosyalar:
