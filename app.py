@@ -4,7 +4,7 @@ import pickle
 import re
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from nltk.corpus import words  # Yeni eklendi: Anlamlı kelime kontrolü için
+from nltk.corpus import words
 import nltk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,11 +14,154 @@ from deep_translator import GoogleTranslator
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)
-nltk.download('words', quiet=True)  # Yeni eklendi
+nltk.download('words', quiet=True)
 
-# İngilizce kelime listesini set olarak hafızaya alıyoruz (Performans için)
 english_vocab = set(w.lower() for w in words.words())
 
+
+class TextPreprocessor:
+    """
+    Handles all text preprocessing operations including cleaning,
+    validation, and translation for the fake review detection pipeline.
+    """
+
+    def __init__(self):
+        """Initialize lemmatizer and English stopwords."""
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
+
+    def clean(self, text: str) -> str:
+        """
+        Clean and normalize raw review text for model inference.
+
+        Steps:
+            1. Convert to lowercase
+            2. Remove non-alphabetic characters
+            3. Tokenize by whitespace
+            4. Remove stopwords and apply lemmatization
+
+        Args:
+            text (str): Raw review text.
+
+        Returns:
+            str: Cleaned and lemmatized text ready for vectorization.
+        """
+        text = text.lower()
+        text = re.sub(r'[^a-z\s]', '', text)
+        tokens = text.split()
+        tokens = [self.lemmatizer.lemmatize(word)
+                  for word in tokens if word not in self.stop_words]
+        return ' '.join(tokens)
+
+    def is_valid(self, text: str) -> tuple:
+        """
+        Validate whether the input text is a meaningful review.
+
+        Checks:
+            - Minimum length (>= 6 characters, >= 2 words)
+            - Not composed solely of numbers or symbols
+            - Contains at least one alphabetic character
+            - At least 35% of words exist in English vocabulary
+
+        Args:
+            text (str): Input text to validate (should be in English).
+
+        Returns:
+            tuple: (bool, str) — (is_valid, reason_message)
+        """
+        raw_text = str(text).strip()
+
+        if len(raw_text) < 6 or len(raw_text.split()) < 2:
+            return False, "Tekrar deneyiniz."
+
+        if re.match(r'^[0-9\W_]+$', raw_text):
+            return False, "Girdi sadece sayı veya sembollerden oluşamaz."
+
+        cleaned_words = re.sub(r'[^a-z\s]', '', raw_text.lower()).split()
+        if not cleaned_words:
+            return False, "Anlamlı karakter bulunamadı."
+
+        valid_word_count = sum(1 for word in cleaned_words if word in english_vocab)
+        valid_ratio = valid_word_count / len(cleaned_words)
+
+        if valid_ratio < 0.35:
+            return False, "Girdi anlamsız karakterler veya kelimeler içeriyor."
+
+        return True, "Geçerli"
+
+    def translate_to_english(self, text: str) -> str:
+        """
+        Translate input text to English using Google Translate API.
+
+        Args:
+            text (str): Text in any language.
+
+        Returns:
+            str: Translated English text, or original text if translation fails.
+        """
+        try:
+            return GoogleTranslator(source='auto', target='en').translate(text)
+        except Exception:
+            return text
+
+
+class ReviewClassifier:
+    """
+    Loads the trained SVM model and TF-IDF vectorizer,
+    and provides prediction functionality for single and batch reviews.
+    """
+
+    def __init__(self, model_path: str = 'model.pkl', tfidf_path: str = 'tfidf.pkl'):
+        """
+        Load model and TF-IDF vectorizer from disk.
+
+        Args:
+            model_path (str): Path to the pickled classification model.
+            tfidf_path (str): Path to the pickled TF-IDF vectorizer.
+        """
+        self.model, self.tfidf = self._load(model_path, tfidf_path)
+
+    @st.cache_resource
+    def _load(_self, model_path: str, tfidf_path: str):
+        """
+        Load and cache model and vectorizer from pickle files.
+
+        Args:
+            model_path (str): Path to model pickle file.
+            tfidf_path (str): Path to TF-IDF pickle file.
+
+        Returns:
+            tuple: (model, tfidf_vectorizer)
+        """
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        with open(tfidf_path, 'rb') as f:
+            tfidf = pickle.load(f)
+        return model, tfidf
+
+    def predict(self, clean_text: str) -> tuple:
+        """
+        Predict whether a cleaned review text is fake or real.
+
+        Args:
+            clean_text (str): Preprocessed review text.
+
+        Returns:
+            tuple: (prediction: int, probabilities: np.ndarray)
+                   prediction — 0 for fake, 1 for real
+                   probabilities — [P(fake), P(real)]
+        """
+        vectorized = self.tfidf.transform([clean_text])
+        prediction = self.model.predict(vectorized)[0]
+        probability = self.model.predict_proba(vectorized)[0]
+        return prediction, probability
+
+
+# ── Initialize core objects ───────────────────────────────────────────────────
+preprocessor = TextPreprocessor()
+classifier = ReviewClassifier()
+
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Sahte Yorum Tespit Sistemi", page_icon="🔍", layout="wide")
 
 st.markdown("""
@@ -208,49 +351,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
-
-def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-z\s]', '', text)
-    tokens = text.split()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
-    return ' '.join(tokens)
-
-# Girdinin anlamlı bir yorum olup olmadığını denetleyen fonksiyon
-def is_valid_review(text):
-    raw_text = str(text).strip()
-    
-    if len(raw_text) < 6 or len(raw_text.split()) < 2:
-        return False, "Tekrar deneyiniz."
-        
-    if re.match(r'^[0-9\W_]+$', raw_text):
-        return False, "Girdi sadece sayı veya sembollerden oluşamaz."
-        
-    cleaned_words = re.sub(r'[^a-z\s]', '', raw_text.lower()).split()
-    if not cleaned_words:
-        return False, "Anlamlı karakter bulunamadı."
-        
-    valid_word_count = sum(1 for word in cleaned_words if word in english_vocab)
-    valid_ratio = valid_word_count / len(cleaned_words)
-    
-    if valid_ratio < 0.35:
-        return False, "Girdi anlamsız karakterler veya kelimeler içeriyor."
-        
-    return True, "Geçerli"
-
-@st.cache_resource
-def load_model():
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    with open('tfidf.pkl', 'rb') as f:
-        tfidf = pickle.load(f)
-    return model, tfidf
-
-model, tfidf = load_model()
-
-# Session state başlat
+# ── Session state ─────────────────────────────────────────────────────────────
 if 'dosyalar' not in st.session_state:
     st.session_state.dosyalar = {}
 if 'aktif_dosya' not in st.session_state:
@@ -258,7 +359,7 @@ if 'aktif_dosya' not in st.session_state:
 
 tab1, tab2 = st.tabs(["🔎 Tekli Analiz", "📂 Toplu Analiz"])
 
-# --- TEKLİ ANALİZ ---
+# ── TEKLİ ANALİZ ──────────────────────────────────────────────────────────────
 with tab1:
     st.markdown("<br>", unsafe_allow_html=True)
     user_input = st.text_area("Yorumu buraya yazınız", height=150,
@@ -269,14 +370,10 @@ with tab1:
             st.warning("Lütfen yorum girin")
         else:
             with st.spinner("🌍 Dil işleniyor..."):
-                try:
-                    translated_text = GoogleTranslator(source='auto', target='en').translate(user_input)
-                except Exception as e:
-                    st.error("Çeviri sırasında bir hata oluştu.")
-                    translated_text = user_input # Hata olursa orijinal metne dön
+                translated_text = preprocessor.translate_to_english(user_input)
 
-            is_valid, error_msg = is_valid_review(translated_text)
-            
+            is_valid, error_msg = preprocessor.is_valid(translated_text)
+
             if not is_valid:
                 st.error(f"⚠️ Geçersiz Yorum Algılandı: {error_msg}")
             else:
@@ -286,16 +383,14 @@ with tab1:
                 with st.spinner("🔄 Yorum analiz ediliyor..."):
                     status.write("Metin temizleniyor...")
                     progress.progress(25)
-                    cleaned = clean_text(translated_text)
+                    cleaned = preprocessor.clean(translated_text)
 
                     status.write("Vektörleştiriliyor...")
                     progress.progress(50)
-                    vectorized = tfidf.transform([cleaned])
 
                     status.write("Tahmin yapılıyor...")
                     progress.progress(80)
-                    prediction = model.predict(vectorized)[0]
-                    probability = model.predict_proba(vectorized)[0]
+                    prediction, probability = classifier.predict(cleaned)
 
                     progress.progress(100)
                     status.success("✓ Analiz tamamlandı")
@@ -318,6 +413,7 @@ with tab1:
                             ✅ Bu yorum GERÇEK görünüyor!
                         </div>
                     """, unsafe_allow_html=True)
+
                 if user_input.lower().strip() != translated_text.lower().strip():
                     with st.expander("🌐 Çeviri Detayını Gör"):
                         st.write(f"**Orijinal Metin:** {user_input}")
@@ -387,7 +483,7 @@ with tab1:
                         </div>
                     """, unsafe_allow_html=True)
 
-# --- TOPLU ANALİZ ---
+# ── TOPLU ANALİZ ──────────────────────────────────────────────────────────────
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -419,30 +515,36 @@ with tab2:
                     df_yeni = pd.DataFrame(lines, columns=["yorum"])
                     metin_sutun = "yorum"
 
-                # 100 Satır Kontrolü
                 if len(df_yeni) > 100:
                     st.error(f"⚠️ Dosya çok büyük ({len(df_yeni)} satır). API limitleri nedeniyle maksimum 100 satır yüklenebilir.")
                 else:
                     with st.spinner("🌍 Çevriliyor ve Analiz ediliyor..."):
-                        # Toplu İşleme Fonksiyonu
+
                         def toplu_islem(row_text):
+                            """
+                            Process a single review row for batch analysis.
+
+                            Translates to English, validates, cleans,
+                            and predicts fake/real label.
+
+                            Args:
+                                row_text: Raw review text from dataframe row.
+
+                            Returns:
+                                tuple: (label: str, english_text: str)
+                            """
                             try:
-                                # Dil algıla ve çevir
-                                t_text = GoogleTranslator(source='auto', target='en').translate(str(row_text))
-                                # Geçerlilik kontrolü (çevrilmiş metin üzerinden)
-                                valid, _ = is_valid_review(t_text)
+                                t_text = preprocessor.translate_to_english(str(row_text))
+                                valid, _ = preprocessor.is_valid(t_text)
                                 if not valid:
                                     return "⚠️ Geçersiz", t_text
-                                # Temizle ve Tahmin Et
-                                cleaned = clean_text(t_text)
-                                vec = tfidf.transform([cleaned])
-                                pred = model.predict(vec)[0]
+                                cleaned = preprocessor.clean(t_text)
+                                pred, _ = classifier.predict(cleaned)
                                 label = '✅ Gerçek' if pred == 1 else '🚨 Sahte'
                                 return label, t_text
-                            except:
+                            except Exception:
                                 return "❌ Hata", str(row_text)
 
-                        # Fonksiyonu tüm satırlara uygula
                         sonuclar = df_yeni[metin_sutun].apply(toplu_islem)
                         df_yeni['tahmin_label'] = [s[0] for s in sonuclar]
                         df_yeni['english_version'] = [s[1] for s in sonuclar]
@@ -453,7 +555,6 @@ with tab2:
                     }
                     st.session_state.aktif_dosya = dosya_adi
 
-        # Dosya listesi
         if st.session_state.dosyalar:
             for dosya_adi in st.session_state.dosyalar:
                 aktif = dosya_adi == st.session_state.aktif_dosya
@@ -562,4 +663,10 @@ with tab2:
                 file_name=f"{st.session_state.aktif_dosya}_sonuc.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-        
+        else:
+            st.markdown("""
+                <div style="text-align: center; padding: 60px 20px;
+                            color: rgba(255,255,255,0.4); font-size: 18px;">
+                    📂 Sol taraftan bir dosya seçin veya yükleyin
+                </div>
+            """, unsafe_allow_html=True)
