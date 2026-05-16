@@ -9,6 +9,7 @@ import nltk
 import matplotlib.pyplot as plt
 import numpy as np
 import io
+from deep_translator import GoogleTranslator
 
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
@@ -267,7 +268,14 @@ with tab1:
         if user_input.strip() == "":
             st.warning("Lütfen yorum girin")
         else:
-            is_valid, error_msg = is_valid_review(user_input)
+            with st.spinner("🌍 Dil işleniyor..."):
+                try:
+                    translated_text = GoogleTranslator(source='auto', target='en').translate(user_input)
+                except Exception as e:
+                    st.error("Çeviri sırasında bir hata oluştu.")
+                    translated_text = user_input # Hata olursa orijinal metne dön
+
+            is_valid, error_msg = is_valid_review(translated_text)
             
             if not is_valid:
                 st.error(f"⚠️ Geçersiz Yorum Algılandı: {error_msg}")
@@ -278,7 +286,7 @@ with tab1:
                 with st.spinner("🔄 Yorum analiz ediliyor..."):
                     status.write("Metin temizleniyor...")
                     progress.progress(25)
-                    cleaned = clean_text(user_input)
+                    cleaned = clean_text(translated_text)
 
                     status.write("Vektörleştiriliyor...")
                     progress.progress(50)
@@ -310,7 +318,11 @@ with tab1:
                             ✅ Bu yorum GERÇEK görünüyor!
                         </div>
                     """, unsafe_allow_html=True)
-
+                if user_input.lower().strip() != translated_text.lower().strip():
+                    with st.expander("🌐 Çeviri Detayını Gör"):
+                        st.write(f"**Orijinal Metin:** {user_input}")
+                        st.write(f"**Analiz Edilen (İngilizce):** {translated_text}")
+                        
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 📊 Sahtelik / Gerçeklik Oranı")
 

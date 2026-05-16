@@ -4,3 +4,4 @@ nltk
 matplotlib
 scikit-learn
 openpyxl
+deep-translator
