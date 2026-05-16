@@ -417,7 +417,7 @@ with tab1:
                 if user_input.lower().strip() != translated_text.lower().strip():
                     with st.expander("🌐 Çeviri Detayını Gör"):
                         st.write(f"**Orijinal Metin:** {user_input}")
-                        st.write(f"**Analiz Edilen (İngilizce):** {translated_text}")
+                        st.write(f"**Analiz Edilen (English):** {translated_text}")
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 📊 Sahtelik / Gerçeklik Oranı")
