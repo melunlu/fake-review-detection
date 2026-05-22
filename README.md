@@ -1,6 +1,3 @@
-<img width="1892" height="690" alt="image" src="https://github.com/user-attachments/assets/46ffc288-da10-4b2c-87de-adeddbc4d6b7" />
-
-
 # Fake Review Detection (Sahte Yorum Tespiti)
 
 Bu proje, e-ticaret sitelerindeki kullanıcı yorumlarının gerçekliğini (Gerçek/Sahte) analiz etmek için **Makine Öğrenmesi (Machine Learning)** ve **Doğal Dil İşleme (NLP)** tekniklerini kullanan web tabanlı bir uygulamadır. 
