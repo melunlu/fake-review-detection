@@ -1,4 +1,4 @@
-# Fake Review Detection (Sahte Yorum Tespiti)
+<img width="1892" height="690" alt="image" src="https://github.com/user-attachments/assets/46ffc288-da10-4b2c-87de-adeddbc4d6b7" /># Fake Review Detection (Sahte Yorum Tespiti)
 
 Bu proje, e-ticaret sitelerindeki kullanıcı yorumlarının gerçekliğini (Gerçek/Sahte) analiz etmek için **Makine Öğrenmesi (Machine Learning)** ve **Doğal Dil İşleme (NLP)** tekniklerini kullanan web tabanlı bir uygulamadır. 
 
@@ -11,6 +11,19 @@ Uygulamanın çalışan versiyonuna aşağıdaki bağlantıdan ulaşabilirsiniz:
 [https://sahte-yorum-tespiti.streamlit.app/]
 
 ---
+
+## 📸 Ekran Görüntüleri
+
+### Tekli Yorum Analizi ve Sonuç Ekranı
+![Tekli Analiz](teklianaliz.png)
+
+### Toplu Analiz ve Grafik Düzeni
+![Toplu Analiz](topluanaliz.png)
+
+## 🎥 Proje Demo Videosu
+
+Uygulamanın canlı kullanımını ve fonksiyonlarını içeren demo videosunu izlemek için [Buraya Tıklayın](https://youtu.be/0v0tjEaT87U).
+
 
 ##  Projenin Amacı
 Günümüzde e-ticaret platformlarındaki sahte yorumlar, tüketicileri yanıltmakta ve haksız rekabete yol açmaktadır. Bu projenin geliştirilme amaçları şunlardır:
