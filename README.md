@@ -60,19 +60,24 @@ Uygulama geliştirilirken aşağıdaki araç ve kütüphaneler kullanılmıştı
 
 ---
 
-##  Yerel Kurulum (Local Setup)
+## Yerel Kurulum (Local Setup)
+
 Projeyi kendi bilgisayarınızda çalıştırmak için:
 
 1. **Bu depoyu klonlayın:**
-   ```bash
-   git clone [https://github.com/melunlu/fake-review-detection.git]
 
-   
-2. **Bu proje için gerekli kütüphaneleri indirin.**
-     
-   pip install -r requirements.txt
+```bash
+git clone https://github.com/melunlu/fake-review-detection.git
+```
 
-   
-3. **Uygulamayı başlatın.**
-   
-      streamlit run app.py
+2. **Gerekli kütüphaneleri yükleyin:**
+
+```bash
+pip install -r requirements.txt
+```
+
+3. **Uygulamayı başlatın:**
+
+```bash
+streamlit run app.py
+```
