@@ -6,7 +6,7 @@ Bu proje, e-ticaret sitelerindeki kullanıcı yorumlarının gerçekliğini (Ger
 
 ---
 
-## 🌐 Canlı Demo
+## Canlı Demo
 Uygulamanın çalışan versiyonuna aşağıdaki bağlantıdan ulaşabilirsiniz:
 [https://sahte-yorum-tespiti.streamlit.app/]
 
@@ -44,12 +44,12 @@ Uygulama geliştirilirken aşağıdaki araç ve kütüphaneler kullanılmıştı
 ##  Öne Çıkan Özellikler
 1. **Çok Dilli Analiz:** Sistem, Türkçe girilen yorumları otomatik olarak algılar, İngilizceye çevirir ve ardından analiz eder.
 2. **Anlamlılık Kontrolü:** "asdasd" gibi rastgele harf dizilerini veya sadece sayılardan oluşan anlamsız girdileri tespit ederek kullanıcıyı uyarır.
-3. **Toplu Analiz:** CSV veya Excel dosyası yükleyerek yüzlerce yorumu tek seferde analiz edebilir ve sonuçları indirebilirsiniz.
-4. **Veri Görselleştirme:** Toplu analizlerde gerçek/sahte oranını gösteren pasta grafikleri sunar.
+3. **Toplu Analiz:** CSV veya Excel dosyası yükleyerek yüzlerce yorum tek seferde analiz edilebilir ve sonuçlar indirilebilir.
+4. **Veri Görselleştirme:** Analizlerde gerçek/sahte oranını gösteren grafikler sunar.
 
 ---
 
-## 📁 Proje Dosya Yapısı
+## Proje Dosya Yapısı
 
 * `app.py`: Streamlit arayüzünü ve uygulamanın tüm mantıksal süreçlerini (frontend/backend) içeren ana dosya.
 * `fake_review_detection.ipynb`: Modelin eğitim, test ve analiz süreçlerinin yürütüldüğü Jupyter Notebook dosyası.
@@ -60,7 +60,7 @@ Uygulama geliştirilirken aşağıdaki araç ve kütüphaneler kullanılmıştı
 
 ---
 
-## ⚙️ Yerel Kurulum (Local Setup)
+##  Yerel Kurulum (Local Setup)
 Projeyi kendi bilgisayarınızda çalıştırmak için:
 
 1. **Bu depoyu klonlayın:**
